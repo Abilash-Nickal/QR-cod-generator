@@ -5,18 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic QR Code Details</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Use Font Awesome v6 for reliable icon support -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
+        /* ... (CSS Styles from previous response remain the same) ... */
         body {
             font-family: "Inter", sans-serif;
             overflow-x: hidden;
         }
 
-        /* 🔥 Live Animated Background */
         .live-bg {
-            /* Using a smooth, modern gradient */
             background: linear-gradient(135deg, #1e3a8a, #3b82f6, #6366f1, #c084fc);
             background-size: 400% 400%;
             animation: moveBg 16s ease infinite;
@@ -27,7 +25,6 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* 🔥 Glossy Glassmorphism Card */
         .glass {
             backdrop-filter: blur(18px);
             -webkit-backdrop-filter: blur(18px);
@@ -37,7 +34,6 @@
             position: relative;
         }
 
-        /* Glossy Shine Effect */
         .glass::before {
             content: "";
             position: absolute;
@@ -50,8 +46,7 @@
                 transparent 70%
             );
             animation: shine 8s linear infinite;
-            /* FIX: Prevents the shine effect from intercepting clicks */
-            pointer-events: none; 
+            pointer-events: none;
         }
 
         @keyframes shine {
@@ -59,7 +54,6 @@
             100% { transform: translate(20%, 20%); }
         }
 
-        /* Social Icon Glow */
         .glow-icon {
             box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
             transition: 0.3s ease;
@@ -69,7 +63,6 @@
             box-shadow: 0 0 35px rgba(255, 255, 255, 0.6);
         }
 
-        /* Dropdown fix */
         .dropdown-menu {
             transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
             opacity: 0;
@@ -129,30 +122,41 @@
                 <span>Name:</span>
                 <span id="nameValue"></span>
             </div>
-
+            
+            <!-- Link/Copy Data Display -->
             <div id="linkContainer" class="flex justify-between bg-white/20 p-3 rounded-xl hidden">
-                <span>Link:</span>
+                <span id="linkLabel">Link:</span>
                 <a id="linkValue" href="#" target="_blank" class="underline text-right break-all"></a>
+            </div>
+            
+            <div id="copyDataContainer" class="flex justify-between bg-white/20 p-3 rounded-xl hidden">
+                <span class="font-bold text-yellow-300">Data to Copy:</span>
+                <span id="copyDataValue" class="text-right break-all"></span>
             </div>
         </div>
 
-        <!-- Action Button -->
-        <a id="actionLink" href="#"
+        <!-- Action Button (Dynamically assigned function) -->
+        <button id="actionButton"
            class="mt-8 block w-full text-center py-3 rounded-xl text-white font-semibold shadow-lg transition duration-300 bg-indigo-600 hover:bg-indigo-500">
             Go to Profile
-        </a>
+        </button>
+        
+        <p id="copyFeedback" class="text-sm text-center text-yellow-300 mt-3 hidden"></p>
 
     </div>
 
     <script>
-        /* PLATFORM MAP: Uses standard Font Awesome classes and Tailwind color utilities */
+        /* PLATFORM MAP */
         const PLATFORM_MAP = [
-            // Note: fab is now fa-brands in newer versions of FA, but FA 6 supports fab for compatibility
-            { prefix: 'facebook.com', icon: 'fab fa-facebook-f', color: 'bg-blue-600', hover: 'hover:bg-blue-500', name: 'Facebook' },
-            { prefix: 'instagram.com', icon: 'fab fa-instagram', color: 'bg-pink-600', hover: 'hover:bg-pink-500', name: 'Instagram' },
-            { prefix: 'youtube.com', icon: 'fab fa-youtube', color: 'bg-red-600', hover: 'hover:bg-red-500', name: 'YouTube' },
-            { prefix: 'linkedin.com/in', icon: 'fab fa-linkedin-in', color: 'bg-blue-800', hover: 'hover:bg-blue-700', name: 'LinkedIn' },
-            { prefix: 'wa.me', icon: 'fab fa-whatsapp', color: 'bg-green-600', hover: 'hover:bg-green-500', name: 'WhatsApp' },
+            { prefix: 'facebook.com', icon: 'fab fa-facebook-f', color: 'bg-blue-600', hover: 'hover:bg-blue-500', name: 'Facebook', action: 'link' },
+            { prefix: 'instagram.com', icon: 'fab fa-instagram', color: 'bg-pink-600', hover: 'hover:bg-pink-500', name: 'Instagram', action: 'link' },
+            { prefix: 'youtube.com', icon: 'fab fa-youtube', color: 'bg-red-600', hover: 'hover:bg-red-500', name: 'YouTube', action: 'link' },
+            { prefix: 'linkedin.com/in', icon: 'fab fa-linkedin-in', color: 'bg-blue-800', hover: 'hover:bg-blue-700', name: 'LinkedIn', action: 'link' },
+            { prefix: 'wa.me', icon: 'fab fa-whatsapp', color: 'bg-green-600', hover: 'hover:bg-green-500', name: 'WhatsApp', action: 'link' },
+            { prefix: 'tel:', icon: 'fa-solid fa-phone', color: 'bg-green-700', hover: 'hover:bg-green-600', name: 'Call', action: 'link' },
+            { prefix: 'sms:', icon: 'fa-solid fa-message', color: 'bg-yellow-500', hover: 'hover:bg-yellow-400', name: 'Text', action: 'link' },
+            { prefix: 'mailto:', icon: 'fa-solid fa-envelope', color: 'bg-red-500', hover: 'hover:bg-red-400', name: 'Email', action: 'link' },
+            { prefix: '?copydata=', icon: 'fa-solid fa-clipboard', color: 'bg-cyan-600', hover: 'hover:bg-cyan-500', name: 'Copy Data', action: 'copy' },
         ];
 
         function getQueryParams() {
@@ -165,46 +169,77 @@
             return params;
         }
 
-        function applyDynamicStyles(link) {
+        // --- NEW COPY FUNCTION ---
+        function copyDataToClipboard(data, button, feedbackElement) {
+            navigator.clipboard.writeText(data).then(() => {
+                button.innerText = "Copied!";
+                feedbackElement.innerText = "Data copied successfully.";
+                feedbackElement.classList.remove('hidden');
+                setTimeout(() => {
+                    button.innerText = "Copy Data";
+                    feedbackElement.classList.add('hidden');
+                }, 2000);
+            }).catch(err => {
+                feedbackElement.innerText = "Copy failed. Please copy manually.";
+                feedbackElement.classList.remove('hidden');
+                console.error('Could not copy text: ', err);
+            });
+        }
+
+        function applyDynamicStyles(link, copyData) {
             const iconContainer = document.getElementById("iconContainer");
-            const actionLink = document.getElementById("actionLink");
+            const actionButton = document.getElementById("actionButton");
             const socialIcon = document.getElementById("socialIcon");
+            const copyFeedback = document.getElementById("copyFeedback");
             
             let apply = { 
                 icon: 'fa-solid fa-link', 
                 color: 'bg-indigo-600', 
                 hover: 'hover:bg-indigo-500', 
-                name: 'Website' 
+                name: 'Website',
+                action: 'link' 
             };
             
             // 1. Check for platform match
-            if (link) {
-                // Check if the link contains any of the defined social media prefixes
+            if (link || copyData) {
+                let matchString = copyData ? '?copydata=' : link; // Use copydata if present
+                
                 for (const platform of PLATFORM_MAP) {
-                    if (link.includes(platform.prefix)) {
+                    if (matchString.startsWith(platform.prefix) || link?.includes(platform.prefix)) {
                         apply = platform;
                         break;
                     }
                 }
             }
 
-            // 2. Apply styling based on platform
+            // 2. Clear old click listeners and attributes
+            actionButton.onclick = null;
+            actionButton.removeAttribute('href');
+            actionButton.removeAttribute('target');
             
-            // a. Update Icon Container Color & Classes
-            // Remove previous bg-color classes and add the new one
-            iconContainer.className = iconContainer.className.replace(/bg-.*?-600|bg-.*?-800/g, '').trim();
+            // 3. Apply action-specific logic
+            actionButton.innerText = apply.name;
+            
+            if (apply.action === 'copy' && copyData) {
+                // Attach copy function
+                actionButton.onclick = () => copyDataToClipboard(copyData, actionButton, copyFeedback);
+            } else if (link) {
+                // Attach link attributes
+                actionButton.setAttribute('href', link);
+                // Only open new tab for HTTP links
+                if (!link.startsWith('tel:') && !link.startsWith('sms:') && !link.startsWith('mailto:')) {
+                    actionButton.setAttribute('target', '_blank');
+                }
+            }
+            
+            // 4. Apply styling
+            iconContainer.className = iconContainer.className.replace(/bg-.*?\-[56789]00/g, '').trim();
+            actionButton.className = actionButton.className.replace(/bg-.*?\-[56789]00/g, '').trim();
+            actionButton.className = actionButton.className.replace(/hover:bg-.*?\-[4567]00/g, '').trim();
+
             iconContainer.classList.add(apply.color);
-            
-            // b. Update Icon
             socialIcon.className = apply.icon;
-            
-            // c. Update Action Button Text and Color
-            actionLink.innerText = `Go to ${apply.name}`;
-            // Remove previous bg-color classes and add the new one
-            actionLink.className = actionLink.className.replace(/bg-.*?-600|bg-.*?-800/g, '').trim();
-            actionLink.className = actionLink.className.replace(/hover:bg-.*?-500|hover:bg-.*?-700/g, '').trim();
-            
-            actionLink.classList.add(apply.color, apply.hover);
+            actionButton.classList.add(apply.color, apply.hover);
         }
 
         window.onload = function () {
@@ -213,12 +248,32 @@
             document.getElementById("loading").classList.add("hidden");
             document.getElementById("content").classList.remove("hidden");
 
-            const { name, msg, url, img } = params;
+            const { name, msg, url, img, copydata } = params; // Extract copydata
 
             document.getElementById("displayName").innerText = name || "User Profile";
             document.getElementById("displayMessage").innerText = msg || "";
 
-            // --- Profile Image Logic ---
+            // --- Determine what data to show ---
+            const linkData = url || '';
+            const copyData = copydata || '';
+            
+            const linkContainer = document.getElementById("linkContainer");
+            const copyDataContainer = document.getElementById("copyDataContainer");
+
+            if (copyData) {
+                // Show copy data container
+                document.getElementById("copyDataValue").innerText = copyData;
+                copyDataContainer.classList.remove("hidden");
+                linkContainer.classList.add("hidden");
+            } else if (linkData) {
+                // Show link container
+                document.getElementById("linkValue").innerText = linkData.length > 50 ? linkData.substring(0, 47) + '...' : linkData;
+                document.getElementById("linkValue").href = linkData;
+                linkContainer.classList.remove("hidden");
+                copyDataContainer.classList.add("hidden");
+            }
+
+            // --- Profile/Data Display Logic ---
             const imgElement = document.getElementById("profileImage");
             const iconContainer = document.getElementById("iconContainer");
 
@@ -226,7 +281,6 @@
                 imgElement.src = img;
                 imgElement.classList.remove("hidden");
                 iconContainer.classList.add("hidden");
-                // Move the glow to the image container if image is present
                 imgElement.classList.add("glow-icon");
             } else {
                 imgElement.classList.add("hidden");
@@ -234,21 +288,13 @@
                 iconContainer.classList.add("glow-icon");
             }
             
-            // --- Data Display Logic ---
             if (name) {
                 document.getElementById("nameValue").innerText = name;
                 document.getElementById("nameContainer").classList.remove("hidden");
             }
 
-            if (url) {
-                document.getElementById("linkValue").innerText = url.length > 50 ? url.substring(0, 47) + '...' : url;
-                document.getElementById("linkValue").href = url;
-                document.getElementById("linkContainer").classList.remove("hidden");
-                document.getElementById("actionLink").href = url;
-            }
-
-            // --- Apply Styles and Icons ---
-            applyDynamicStyles(url);
+            // --- Apply Styles and Action ---
+            applyDynamicStyles(linkData, copyData);
         }
     </script>
 
