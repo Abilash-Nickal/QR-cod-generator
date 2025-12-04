@@ -8,12 +8,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
-        /* ... (CSS Styles from previous response remain the same) ... */
+        /* BASE STYLES */
         body {
             font-family: "Inter", sans-serif;
             overflow-x: hidden;
         }
 
+        /* BACKGROUND ANIMATION */
         .live-bg {
             background: linear-gradient(135deg, #1e3a8a, #3b82f6, #6366f1, #c084fc);
             background-size: 400% 400%;
@@ -25,6 +26,7 @@
             100% { background-position: 0% 50%; }
         }
 
+        /* GLASS EFFECT */
         .glass {
             backdrop-filter: blur(18px);
             -webkit-backdrop-filter: blur(18px);
@@ -34,6 +36,7 @@
             position: relative;
         }
 
+        /* GLASS SHINE EFFECT */
         .glass::before {
             content: "";
             position: absolute;
@@ -48,12 +51,12 @@
             animation: shine 8s linear infinite;
             pointer-events: none;
         }
-
         @keyframes shine {
             0% { transform: translate(-20%, -20%); }
             100% { transform: translate(20%, 20%); }
         }
 
+        /* GLOW ICON */
         .glow-icon {
             box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
             transition: 0.3s ease;
@@ -63,66 +66,71 @@
             box-shadow: 0 0 35px rgba(255, 255, 255, 0.6);
         }
 
+        /* DROPDOWN MENU (JS CONTROLLED) */
         .dropdown-menu {
             transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
             opacity: 0;
             transform: translateY(10px);
             pointer-events: none;
         }
-    .dropdown:hover .dropdown-menu {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
-    }
+        /* NEW: Class controlled by JavaScript for visibility */
+        .dropdown-menu.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
 
-    /* Platform Button Styles */
-    .platform-button {
-        display: inline-block;
-        margin: 2px;
-        padding: 8px 12px;
-        border-radius: 6px;
-        text-decoration: none;
-        font-weight: 500;
-        transition: background-color 0.3s, transform 0.2s;
-        color: white;
-    }
-    .platform-button:hover {
-        transform: scale(1.05);
-    }
+        /* PLATFORM BUTTON STYLES */
+        .platform-button {
+            display: inline-block;
+            margin: 2px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.3s, transform 0.2s;
+            color: white;
+        }
+        .platform-button:hover {
+            transform: scale(1.05);
+        }
 
-    /* Dark Mode */
-    .dark body {
-        background: #111 !important;
-        color: #fff !important;
-    }
-    .dark .glass {
-        background: rgba(0,0,0,0.8) !important;
-        border-color: rgba(255,255,255,0.2) !important;
-    }
-    .dark .glass::before {
-        background: radial-gradient(rgba(255,255,255,0.1), transparent 70%);
-    }
-    .dark .live-bg {
-        background: #111 !important;
-    }
+        /* DARK MODE */
+        .dark body {
+            background: #111 !important;
+            color: #fff !important;
+        }
+        .dark .glass {
+            background: rgba(0,0,0,0.8) !important;
+            border-color: rgba(255,255,255,0.2) !important;
+        }
+        .dark .glass::before {
+            background: radial-gradient(rgba(255,255,255,0.1), transparent 70%);
+        }
+        .dark .live-bg {
+            background: #111 !important;
+        }
     </style>
 </head>
 
 <body class="live-bg min-h-screen flex items-center justify-center p-5">
 
-    <!-- Loading Message -->
     <div id="loading" class="text-xl font-bold text-white drop-shadow">Scanning data...</div>
 
-    <!-- Glass Card -->
     <div id="content" class="glass card p-8 rounded-3xl w-full max-w-lg hidden">
 
-        <!-- Modern Dropdown Menu -->
-        <div class="dropdown relative mb-5 text-right">
-            <button class="text-white text-xl">
-                <i class="fa-solid fa-ellipsis-vertical"></i>
+        <div class="relative mb-5 text-right">
+            <button id="menuToggleBtn" class="text-white text-xl">
+                <i class="fa-solid fa-ellipsis"></i>
             </button>
-            <div class="dropdown-menu absolute right-0 mt-2 w-40 glass p-3 rounded-xl text-white space-y-2 z-10">
-                <button onclick="sharePage()" class="flex items-center space-x-2 hover:text-yellow-300 transition duration-150 w-full text-left">
+            
+            <div id="optionsMenu" class="dropdown-menu absolute right-0 mt-2 w-40 glass p-3 rounded-xl text-white space-y-2 z-10">
+                
+                <button onclick="toggleMenu()" class="absolute top-2 right-2 text-white/80 hover:text-yellow-300 transition duration-150 p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <button onclick="sharePage()" class="flex items-center space-x-2 hover:text-yellow-300 transition duration-150 w-full text-left pt-2">
                     <i class="fa-solid fa-share"></i><span>Share</span>
                 </button>
                 <button onclick="downloadData()" class="flex items-center space-x-2 hover:text-yellow-300 transition duration-150 w-full text-left">
@@ -134,7 +142,6 @@
             </div>
         </div>
 
-        <!-- Icon/Profile -->
         <div class="text-center mb-6">
             <div id="iconContainer"
                  class="w-28 h-28 rounded-full mx-auto flex items-center justify-center text-white text-4xl glow-icon shadow-2xl transition duration-500 bg-indigo-500">
@@ -147,14 +154,12 @@
             <p id="displayMessage" class="text-white/80 font-medium"></p>
         </div>
 
-        <!-- Data List -->
         <div class="space-y-4 text-white">
             <div id="nameContainer" class="flex justify-between bg-white/20 p-3 rounded-xl hidden">
                 <span>Name:</span>
                 <span id="nameValue"></span>
             </div>
             
-            <!-- Multiple Link Buttons -->
             <div id="linksContainer" class="space-y-2 hidden">
                 <div id="linksButtons"></div>
             </div>
@@ -170,7 +175,6 @@
             </div>
         </div>
 
-        <!-- Action Button (Dynamically assigned function) -->
         <a id="actionButton" href="#" role="button"
            class="mt-8 block w-full text-center py-3 rounded-xl text-white font-semibold shadow-lg transition duration-300 bg-indigo-600 hover:bg-indigo-500">
             Go to Profile
@@ -181,7 +185,7 @@
     </div>
 
     <script>
-        /* PLATFORM MAP */
+        /* PLATFORM MAP (Used for button styling and action) */
         const PLATFORM_MAP = [
             { prefix: 'facebook.com', icon: 'fab fa-facebook-f', color: 'bg-blue-600', hover: 'hover:bg-blue-500', name: 'Facebook', action: 'link' },
             { prefix: 'instagram.com', icon: 'fab fa-instagram', color: 'bg-pink-600', hover: 'hover:bg-pink-500', name: 'Instagram', action: 'link' },
@@ -196,14 +200,24 @@
             { prefix: 'default', icon: 'fa-solid fa-globe', color: 'bg-purple-600', hover: 'hover:bg-purple-500', name: 'Website', action: 'link' },
         ];
 
+        /* --- UTILITY FUNCTIONS --- */
+
         function getQueryParams() {
             const params = {};
+            // NOTE: This function needs to be updated on the external page
+            // to correctly handle the short URL parameters (p1, u1, etc.)
+            // and reconstruct the full link (l1, l2, l3).
             location.search.substring(1).split("&").forEach(x => {
                 const [key, value] = x.split("=");
-                // Properly decode URL parameters, including '+' for spaces
                 params[decodeURIComponent(key)] = decodeURIComponent((value || "").replace(/\+/g, ' '));
             });
             return params;
+        }
+
+        // --- NEW: Dropdown Toggle Function ---
+        function toggleMenu() {
+            const menu = document.getElementById('optionsMenu');
+            menu.classList.toggle('active');
         }
 
         // Share the page URL
@@ -216,6 +230,8 @@
                 });
             } else {
                 copyDataToClipboard(window.location.href, null, document.getElementById("copyFeedback"));
+                // Close menu after action
+                toggleMenu(); 
             }
         }
 
@@ -242,20 +258,37 @@
             a.download = `${name || 'profile'}_card_data.txt`;
             a.click();
             URL.revokeObjectURL(url);
+            // Close menu after action
+            toggleMenu(); 
         }
 
         // Toggle dark mode
         function toggleDarkMode() {
             document.documentElement.classList.toggle('dark');
+            // Close menu after action
+            toggleMenu(); 
         }
 
         // --- NEW COPY FUNCTION ---
-        function copyDataToClipboard(data, button, feedbackElement) {
-            // Using navigator.clipboard.writeText is the modern way to copy.
+        function copyDataToClipboard(data, element, feedbackElement) {
             navigator.clipboard.writeText(data).then(() => {
-                button.innerText = "Copied!"+ data;
-                feedbackElement.innerText = "Copied: " + data;
+                // Flash feedback text
+                feedbackElement.innerText = "Copied successfully!";
                 feedbackElement.classList.remove('hidden');
+                
+                // If element is a button, briefly change its text
+                if (element && element.tagName === 'BUTTON') {
+                    const originalText = element.innerHTML;
+                    element.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                    setTimeout(() => {
+                        element.innerHTML = originalText;
+                    }, 1500);
+                } else {
+                    // Flash feedback text for non-button elements
+                    setTimeout(() => {
+                        feedbackElement.classList.add('hidden');
+                    }, 1500);
+                }
             }).catch(err => {
                 feedbackElement.innerText = "Copy failed. Please copy manually.";
                 feedbackElement.classList.remove('hidden');
@@ -279,7 +312,6 @@
 
             // 1. Check for copy data in order: key > copy > link
             if (keyData) {
-                // Use key data for copy
                 apply.name = 'Copy Key';
                 apply.color = 'bg-cyan-600';
                 apply.hover = 'hover:bg-cyan-500';
@@ -292,15 +324,13 @@
                     }
                 }
             } else if (link) {
-                // Check for platform match in link
                 for (const platform of PLATFORM_MAP) {
-                    if (platform.prefix === 'default') continue;
+                    if (platform.prefix === 'default') continue; 
                     if (link.includes(platform.prefix)) {
                         apply = platform;
                         break;
                     }
                 }
-                // If no match, use default website
                 if (apply.icon === 'fa-solid fa-qrcode') {
                     for (const platform of PLATFORM_MAP) {
                         if (platform.prefix === 'default') {
@@ -311,52 +341,64 @@
                 }
             }
 
-            // 2. Clear old click listeners
+            // 2. Clear old click listeners and styling
             actionButton.onclick = null;
+            actionButton.innerText = apply.name;
+            iconContainer.className = iconContainer.className.replace(/bg-.*?\-[56789]00/g, '').trim();
+            actionButton.className = actionButton.className.replace(/bg-.*?\-[56789]00/g, '').trim();
+            actionButton.className = actionButton.className.replace(/hover:bg-.*?\-[4567]00/g, '').trim();
             
             // 3. Apply action-specific logic
-            actionButton.innerText = apply.name;
-
             if (apply.action === 'keycopy' && keyData) {
-                // Attach copy function for key
-                actionButton.setAttribute('href', '#'); // Prevent navigation for copy
+                actionButton.setAttribute('href', '#'); 
                 actionButton.onclick = () => copyDataToClipboard(keyData, actionButton, copyFeedback);
             } else if (apply.action === 'copy' && copyData) {
-                // Attach copy function
-                actionButton.setAttribute('href', '#'); // Prevent navigation for copy
+                actionButton.setAttribute('href', '#'); 
                 actionButton.onclick = () => copyDataToClipboard(copyData, actionButton, copyFeedback);
             } else if (link) {
-                // Attach link attributes
                 actionButton.setAttribute('href', link);
-                // Only open new tab for HTTP links
                 if (!link.startsWith('tel:') && !link.startsWith('sms:') && !link.startsWith('mailto:')) {
                     actionButton.setAttribute('target', '_blank');
                 } else {
                     actionButton.removeAttribute('target');
                 }
             } else {
-                // If no link or copy data, ensure the button is neutralized
                 actionButton.setAttribute('href', '#');
                 actionButton.removeAttribute('target');
                 actionButton.innerText = 'No Action Defined';
             }
             
             // 4. Apply styling
-            iconContainer.className = iconContainer.className.replace(/bg-.*?\-[56789]00/g, '').trim();
-            actionButton.className = actionButton.className.replace(/bg-.*?\-[56789]00/g, '').trim();
-            actionButton.className = actionButton.className.replace(/hover:bg-.*?\-[4567]00/g, '').trim();
-
             iconContainer.classList.add(apply.color);
             socialIcon.className = apply.icon;
             actionButton.classList.add(apply.color, apply.hover);
         }
 
+        /* --- INITIALIZATION --- */
         window.onload = function () {
+            // Attach the toggle menu function to the button
+            document.getElementById('menuToggleBtn').onclick = toggleMenu;
+
+            // Optional: Close menu if user clicks anywhere outside
+            document.addEventListener('click', (event) => {
+                const menu = document.getElementById('optionsMenu');
+                const button = document.getElementById('menuToggleBtn');
+                
+                if (menu.classList.contains('active') && !menu.contains(event.target) && !button.contains(event.target)) {
+                    menu.classList.remove('active');
+                }
+            });
+
+
             const params = getQueryParams();
 
             document.getElementById("loading").classList.add("hidden");
             document.getElementById("content").classList.remove("hidden");
 
+            // NOTE: The server now sends p1/u1/p2/u2 instead of l1/l2/l3.
+            // For this UI to function correctly, you must update the getQueryParams() 
+            // function (or call a decoder function here) to reconstruct the full l1, l2, l3 links 
+            // from p1/u1 before using them in the logic below.
             const { name, msg, l1, l2, l3, img, copy, key } = params;
 
             document.getElementById("displayName").innerText = name || "User Profile";
@@ -364,7 +406,9 @@
 
             const copyData = copy || '';
             const keyData = key || '';
-            const urls = [l1, l2, l3].filter(u => u);
+            // If you updated the getQueryParams() function above, l1, l2, l3 will be the 
+            // reconstructed full URLs. Otherwise, they will be empty strings.
+            const urls = [l1, l2, l3].filter(u => u); 
 
             const linksContainer = document.getElementById("linksContainer");
             const copyDataContainer = document.getElementById("copyDataContainer");
@@ -376,7 +420,6 @@
             linksButtons.innerHTML = '';
 
             if (copyData) {
-                // Show copy button
                 const copyButton = document.createElement('button');
                 copyButton.innerHTML = '<i class="fa-solid fa-clipboard"></i> Copy Data';
                 copyButton.className = 'platform-button bg-cyan-600 hover:bg-cyan-500';
@@ -384,19 +427,18 @@
                 linksButtons.appendChild(copyButton);
 
                 linksContainer.classList.remove("hidden");
-                copyDataContainer.classList.add("hidden"); // Hide text, use button
+                copyDataContainer.classList.add("hidden"); 
                 linkData = '';
                 actionType = 'copy';
             } else if (urls.length > 0) {
-                // Show platform buttons for each link
                 linksContainer.classList.remove("hidden");
                 copyDataContainer.classList.add("hidden");
 
                 urls.forEach((url, idx) => {
                     if (url) {
-                        let platformData = { icon: '<i class="fa-solid fa-globe"></i>', color: 'bg-purple-600', hover: 'hover:bg-purple-500', name: 'Website' };
+                        let platformData = { icon: 'fa-solid fa-globe', color: 'bg-purple-600', hover: 'hover:bg-purple-500', name: 'Website' };
                         for (const platform of PLATFORM_MAP) {
-                            if (platform.prefix === 'default') continue; // Default is checked last
+                            if (platform.prefix === 'default') continue;
                             if (url.includes(platform.prefix)) {
                                 platformData = platform;
                                 break;
@@ -412,7 +454,7 @@
                     }
                 });
 
-                linkData = urls[0]; // Primary link for action button
+                linkData = urls[0]; 
                 actionType = 'links';
             }
 
