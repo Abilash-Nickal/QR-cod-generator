@@ -228,7 +228,8 @@
             } else if (link) {
                 // Check for platform match in link
                 for (const platform of PLATFORM_MAP) {
-                    if (link.includes(platform.prefix) || (platform.prefix.startsWith(platform.prefix) && platform.prefix !== 'default')) {
+                    if (platform.prefix === 'default') continue;
+                    if (link.includes(platform.prefix)) {
                         apply = platform;
                         break;
                     }
@@ -297,9 +298,6 @@
             const linksContainer = document.getElementById("linksContainer");
             const copyDataContainer = document.getElementById("copyDataContainer");
 
-            // Check for facebook links
-            const facebookUrl = urls.find(u => u && u.includes('facebook.com'));
-
             let linkData = '';
             let actionType = 'none';
 
@@ -327,7 +325,8 @@
                     if (url) {
                         let platformData = { icon: '<i class="fa-solid fa-globe"></i>', color: 'bg-purple-600', hover: 'hover:bg-purple-500', name: 'Website' };
                         for (const platform of PLATFORM_MAP) {
-                            if (url.includes(platform.prefix) || (platform.prefix.startsWith(platform.prefix) && platform.prefix !== 'default')) {
+                            if (platform.prefix === 'default') continue; // Default is checked last
+                            if (url.includes(platform.prefix)) {
                                 platformData = platform;
                                 break;
                             }
@@ -336,7 +335,7 @@
                         const button = document.createElement('button');
                         const displayName = platformData.name;
                         button.innerHTML = `${platformData.icon} ${displayName}`;
-                        button.className = `platform-button ${platformData.color.replace('bg-', 'bg-')} ${platformData.hover}`;
+                        button.className = `platform-button ${platformData.color} ${platformData.hover}`;
                         button.onclick = () => window.open(url, '_blank');
                         linksButtons.appendChild(button);
                     }
@@ -367,7 +366,7 @@
             }
 
             // --- Apply Styles and Action ---
-            const primaryLink = actionType === 'facebook' ? facebookUrl : linkData;
+            const primaryLink = linkData;
             applyDynamicStyles(primaryLink, copyData);
 
             // Make image and icon clickable
