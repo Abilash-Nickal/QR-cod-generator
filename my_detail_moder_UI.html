@@ -1,351 +1,324 @@
-import io
-import base64
-import os
-import json
-import urllib.parse
-from flask import Flask, request, render_template_string, send_file
-import qrcode
-from qrcode.image.pil import PilImage
-
-# --- Flask Application Setup ---
-app = Flask(__name__)
-
-# --- Configuration for Minimized QR Code ---
-QR_BOX_SIZE = 5 
-QR_ERROR_CORRECTION = qrcode.constants.ERROR_CORRECT_L
-
-# Global storage for the last generated QR code data (for download)
-last_qr_data = None
-saved_input_data = {}
-
-# --- Helper Function for URL Encoding ---
-
-def generate_target_url(data):
-    """
-    Creates a standardized public URL where the user's data is embedded as query parameters.
-    """
-    
-    # 1. Base URL for the public details page (REPLACE WITH YOUR ACTUAL HOSTED PAGE)
-    BASE_DETAIL_PAGE = "https://abilash-nickal.github.io/QR-cod-generator/my_detail_moder_UI.html"
-
-    # 2. Encode the parameters
-    params = {}
-    if data.get('name'):
-        params['name'] = data['name']
-    if data.get('message'):
-        params['msg'] = data['message']
-    
-    # --- SMART LINK LOGIC ---
-    if data.get('link'):
-        params['url'] = data['link']
-    
-    # Image URL is optional
-    if data.get('image_url'):
-        params['img'] = data['image_url']
-    
-    # 3. Construct the query string
-    query_string = urllib.parse.urlencode(params)
-    
-    # 4. Return the full, scannable URL
-    return f"{BASE_DETAIL_PAGE}?{query_string}"
-
-# --- HTML Template (The Input and Output UI) ---
-HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced QR Code Generator</title>
+    <title>Dynamic QR Code Details</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .url-box { 
-            background-color: #fefcbf; 
-            border-left: 4px solid #f97316; 
-            padding: 0.75rem; 
-            color: #78350f; 
-            font-weight: 600; 
-            overflow-wrap: break-word;
+        /* ... (CSS Styles from previous response remain the same) ... */
+        body {
+            font-family: "Inter", sans-serif;
+            overflow-x: hidden;
+        }
+
+        .live-bg {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6, #6366f1, #c084fc);
+            background-size: 400% 400%;
+            animation: moveBg 16s ease infinite;
+        }
+        @keyframes moveBg {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .glass {
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            background: rgba(255, 255, 255, 0.22);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .glass::before {
+            content: "";
+            position: absolute;
+            top: -20%;
+            left: -20%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(
+                rgba(255, 255, 255, 0.4),
+                transparent 70%
+            );
+            animation: shine 8s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shine {
+            0% { transform: translate(-20%, -20%); }
+            100% { transform: translate(20%, 20%); }
+        }
+
+        .glow-icon {
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
+            transition: 0.3s ease;
+        }
+        .glow-icon:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 35px rgba(255, 255, 255, 0.6);
+        }
+
+        .dropdown-menu {
+            transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+        }
+        .dropdown:hover .dropdown-menu {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">
-            QR Code Data Encoder (Minimized Size)
-        </h1>
-        <p class="text-gray-500 mb-8 text-center">
-            Encode social media, direct contact methods, or copyable text instantly.
-        </p>
 
-        <!-- QR Code Input Form -->
-        <form id="qrForm" method="POST" action="/generate_qr" class="space-y-6">
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                <!-- Name -->
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700">Name (Required)</label>
-                    <input type="text" id="name" name="name" required placeholder="Your Full Name" 
-                           value="{{ saved_data.name or 'Abila' }}"
-                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
-                
-                <!-- Message -->
-                <div>
-                    <label for="message" class="block text-sm font-medium text-gray-700">Short Message</label>
-                    <input type="text" id="message" name="message" placeholder="A brief greeting or status" 
-                           value="{{ saved_data.message or 'Hello from my QR App!' }}"
-                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
-            </div>
-            
-            <!-- SMART LINK CONTROLS -->
-            <div class="grid grid-cols-3 gap-4 border p-4 rounded-lg bg-gray-50">
-                <div class="col-span-1">
-                    <label for="platform" class="block text-sm font-medium text-gray-700">Platform Type</label>
-                    <select id="platform" onchange="updateLink()" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">-- Optional Link --</option>
-                        <option value="facebook">Facebook</option>
-                        <option value="instagram">Instagram</option>
-                        <option value="youtube">YouTube</option>
-                        <option value="linkedin">LinkedIn</option>
-                        <option value="whatsapp">WhatsApp (Number)</option>
-                        <option value="tel">Phone Call (Number)</option>
-                        <option value="sms">Send SMS (Number)</option>
-                        <option value="mailto">Send Email (Address)</option>
-                        <option value="copy_text">Copy Text/Data</option>
-                    </select>
-                </div>
-                <div class="col-span-2">
-                    <label for="username" class="block text-sm font-medium text-gray-700" id="usernameLabel">ID / Number / Data</label>
-                    <input type="text" id="username" name="username_input" oninput="updateLink()" placeholder="e.g., your-profile-id or Registration Key" 
-                           value="{{ saved_data.username or '' }}"
-                           class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
-            </div>
-            
-            <!-- Hidden field for the final resolved URL -->
-            <input type="hidden" name="link" id="finalLink" value="{{ saved_data.link or '' }}">
+<body class="live-bg min-h-screen flex items-center justify-center p-5">
 
-            <!-- Image URL (OPTIONAL) -->
-            <div>
-                <label for="image_url" class="block text-sm font-medium text-gray-700">Image URL (Optional Hosted Profile Picture)</label>
-                <input type="url" id="image_url" name="image_url" placeholder="Paste link to your online image here" 
-                       value="{{ saved_data.image_url or '' }}"
-                       class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-            </div>
-            
-            <button
-                type="submit"
-                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
-            >
-                Generate Custom QR Code
+    <!-- Loading Message -->
+    <div id="loading" class="text-xl font-bold text-white drop-shadow">Scanning data...</div>
+
+    <!-- Glass Card -->
+    <div id="content" class="glass card p-8 rounded-3xl w-full max-w-lg hidden">
+
+        <!-- Modern Dropdown Menu -->
+        <div class="dropdown relative mb-5 text-right">
+            <button class="text-white text-xl">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
             </button>
-        </form>
-
-        {% if qr_image %}
-        <!-- Output and Preview Section -->
-        <div class="mt-10 pt-6 border-t border-gray-200">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4 text-center">
-                Generated Code & Preview
-            </h2>
-
-            <div class="url-box p-4 rounded-lg mb-4">
-                <p class="text-sm font-medium text-gray-700 mb-2">Encoded Data (Scan Target):</p>
-                <code class="block text-xs text-red-600 break-all">{{ display_url }}</code>
+            <div class="dropdown-menu absolute right-0 mt-2 w-40 glass p-3 rounded-xl text-white space-y-2 z-10">
+                <a class="flex items-center space-x-2 hover:text-yellow-300 transition duration-150">
+                    <i class="fa-solid fa-share"></i><span>Share</span>
+                </a>
+                <a class="flex items-center space-x-2 hover:text-yellow-300 transition duration-150">
+                    <i class="fa-solid fa-download"></i><span>Download</span>
+                </a>
+                <a class="flex items-center space-x-2 hover:text-yellow-300 transition duration-150">
+                    <i class="fa-solid fa-gear"></i><span>Settings</span>
+                </a>
             </div>
-
-            <div class="flex justify-center mb-6">
-                <img src="data:image/png;base64,{{ qr_image }}" alt="Generated QR Code" class="p-2 border border-gray-300 rounded-lg max-w-full h-auto">
-            </div>
-            
-            <a 
-                href="/download_qr"
-                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out"
-            >
-                Download QR Code (PNG)
-            </a>
         </div>
-        {% endif %}
+
+        <!-- Icon/Profile -->
+        <div class="text-center mb-6">
+            <div id="iconContainer"
+                 class="w-28 h-28 rounded-full mx-auto flex items-center justify-center text-white text-4xl glow-icon shadow-2xl transition duration-500 bg-indigo-500">
+                <i id="socialIcon" class="fa-solid fa-qrcode"></i>
+            </div>
+
+            <img id="profileImage" class="w-28 h-28 rounded-full mx-auto object-cover hidden shadow-xl mt-4">
+
+            <h1 id="displayName" class="text-3xl font-extrabold text-white mt-4 drop-shadow-lg">Dynamic Profile</h1>
+            <p id="displayMessage" class="text-white/80 font-medium"></p>
+        </div>
+
+        <!-- Data List -->
+        <div class="space-y-4 text-white">
+            <div id="nameContainer" class="flex justify-between bg-white/20 p-3 rounded-xl hidden">
+                <span>Name:</span>
+                <span id="nameValue"></span>
+            </div>
+            
+            <!-- Link/Copy Data Display -->
+            <div id="linkContainer" class="flex justify-between bg-white/20 p-3 rounded-xl hidden">
+                <span id="linkLabel">Link:</span>
+                <a id="linkValue" href="#" target="_blank" class="underline text-right break-all"></a>
+            </div>
+            
+            <div id="copyDataContainer" class="flex justify-between bg-white/20 p-3 rounded-xl hidden">
+                <span class="font-bold text-yellow-300">Data to Copy:</span>
+                <span id="copyDataValue" class="text-right break-all"></span>
+            </div>
+        </div>
+
+        <!-- Action Button (Dynamically assigned function) -->
+        <a id="actionButton" href="#" role="button"
+           class="mt-8 block w-full text-center py-3 rounded-xl text-white font-semibold shadow-lg transition duration-300 bg-indigo-600 hover:bg-indigo-500">
+            Go to Profile
+        </a>
+        
+        <p id="copyFeedback" class="text-sm text-center text-yellow-300 mt-3 hidden"></p>
+
     </div>
-    
+
     <script>
-        {% raw %}
-        // Mapping of platform key to its base URL/format
-        const PLATFORM_BASES = {
-            'facebook': 'https://www.facebook.com/',
-            'instagram': 'https://www.instagram.com/',
-            'youtube': 'https://www.youtube.com/@', 
-            'linkedin': 'https://www.linkedin.com/in/',
-            'whatsapp': 'https://wa.me/', 
-            'tel': 'tel:',         
-            'sms': 'sms:',         
-            'mailto': 'mailto:',   
-            'copy_text': 'COPY:',   // Custom prefix for copy action
-            '': '' 
-        };
+        /* PLATFORM MAP */
+        const PLATFORM_MAP = [
+            { prefix: 'facebook.com', icon: 'fab fa-facebook-f', color: 'bg-blue-600', hover: 'hover:bg-blue-500', name: 'Facebook', action: 'link' },
+            { prefix: 'instagram.com', icon: 'fab fa-instagram', color: 'bg-pink-600', hover: 'hover:bg-pink-500', name: 'Instagram', action: 'link' },
+            { prefix: 'youtube.com', icon: 'fab fa-youtube', color: 'bg-red-600', hover: 'hover:bg-red-500', name: 'YouTube', action: 'link' },
+            { prefix: 'linkedin.com/in', icon: 'fab fa-linkedin-in', color: 'bg-blue-800', hover: 'hover:bg-blue-700', name: 'LinkedIn', action: 'link' },
+            { prefix: 'wa.me', icon: 'fab fa-whatsapp', color: 'bg-green-600', hover: 'hover:bg-green-500', name: 'WhatsApp', action: 'link' },
+            { prefix: 'tel:', icon: 'fa-solid fa-phone', color: 'bg-green-700', hover: 'hover:bg-green-600', name: 'Call', action: 'link' },
+            { prefix: 'sms:', icon: 'fa-solid fa-message', color: 'bg-yellow-500', hover: 'hover:bg-yellow-400', name: 'Text', action: 'link' },
+            { prefix: 'mailto:', icon: 'fa-solid fa-envelope', color: 'bg-red-500', hover: 'hover:bg-red-400', name: 'Email', action: 'link' },
+            { prefix: '?copydata=', icon: 'fa-solid fa-clipboard', color: 'bg-cyan-600', hover: 'hover:bg-cyan-500', name: 'Copy Data', action: 'copy' },
+        ];
 
-        const LABELS = {
-            'facebook': 'Profile ID',
-            'instagram': 'Username',
-            'youtube': 'Channel ID / @Username',
-            'linkedin': 'Profile ID',
-            'whatsapp': 'Phone Number (Intl. Format)',
-            'tel': 'Phone Number',
-            'sms': 'Phone Number',
-            'mailto': 'Email Address',
-            'copy_text': 'Text/Key to Copy',
-            '': 'ID / Number / Data'
-        };
-
-        /**
-         * Dynamically constructs the full URL and updates the hidden input field.
-         */
-        function updateLink() {
-            const platform = document.getElementById('platform').value;
-            const usernameInput = document.getElementById('username');
-            const username = usernameInput.value.trim();
-            const finalLinkInput = document.getElementById('finalLink');
-            const usernameLabel = document.getElementById('usernameLabel');
-            
-            // 1. Update the label based on platform type
-            usernameLabel.innerText = LABELS[platform] || 'ID / Number / Data';
-            
-            let finalUrl = '';
-
-            if (platform && username) {
-                let baseUrl = PLATFORM_BASES[platform];
-
-                if (platform === 'whatsapp' || platform === 'tel' || platform === 'sms') {
-                    // For phone numbers, clean them up
-                    const cleanNumber = username.replace(/[^0-9+]/g, '');
-                    if (cleanNumber) {
-                        finalUrl = baseUrl + cleanNumber;
-                    }
-                } else if (platform === 'youtube') {
-                    // Handle YouTube @ symbol
-                    const cleanUsername = username.startsWith('@') ? username.substring(1) : username;
-                    finalUrl = baseUrl + cleanUsername;
-                } else if (platform === 'copy_text') {
-                    // Special case: Encode the base URL with the raw text
-                    // This is the data the public page will read and copy
-                    finalUrl = BASE_DETAIL_PAGE_ROOT + '?copydata=' + encodeURIComponent(username);
-                } else {
-                    // Standard URL link (Facebook, Instagram, LinkedIn, Mailto)
-                    finalUrl = baseUrl + username;
-                }
-            }
-            
-            // Update the hidden field that the Python script reads
-            finalLinkInput.value = finalUrl;
+        function getQueryParams() {
+            const params = {};
+            location.search.substring(1).split("&").forEach(x => {
+                const [key, value] = x.split("=");
+                // Robust decoding for nested URL parameters
+                params[decodeURIComponent(key)] = decodeURIComponent(decodeURIComponent(value || "")); 
+            });
+            return params;
         }
 
-        // Base URL root for the copy function
-        const BASE_DETAIL_PAGE_ROOT = "https://abilash-nickal.github.io/QR-cod-generator/my_detail_moder_UI.html";
+        // --- NEW COPY FUNCTION ---
+        function copyDataToClipboard(data, button, feedbackElement) {
+            // Using navigator.clipboard.writeText is the modern way to copy.
+            navigator.clipboard.writeText(data).then(() => {
+                button.innerText = "Copied!";
+                feedbackElement.innerText = "Data copied successfully.";
+                feedbackElement.classList.remove('hidden');
+                setTimeout(() => {
+                    button.innerText = "Copy Data"; // Restore button text
+                    feedbackElement.classList.add('hidden');
+                }, 2000);
+            }).catch(err => {
+                feedbackElement.innerText = "Copy failed. Please copy manually.";
+                feedbackElement.classList.remove('hidden');
+                console.error('Could not copy text: ', err);
+            });
+        }
 
-
-        // Initialize link when the page loads if data was previously saved
-        window.onload = function() {
-            // Function to run on load
-            function initialize() {
-                // Restore logic for previously selected platform and run updateLink
-                updateLink();
+        function applyDynamicStyles(link, copyData) {
+            const iconContainer = document.getElementById("iconContainer");
+            const actionButton = document.getElementById("actionButton");
+            const socialIcon = document.getElementById("socialIcon");
+            const copyFeedback = document.getElementById("copyFeedback");
+            
+            let apply = { 
+                icon: 'fa-solid fa-link', 
+                color: 'bg-indigo-600', 
+                hover: 'hover:bg-indigo-500', 
+                name: 'Website',
+                action: 'link' 
+            };
+            
+            // 1. Check for platform match
+            if (link || copyData) {
+                let matchString = copyData ? '?copydata=' : link; 
+                
+                for (const platform of PLATFORM_MAP) {
+                    if (matchString.startsWith(platform.prefix) || link?.includes(platform.prefix)) {
+                        apply = platform;
+                        break;
+                    }
+                }
             }
-            initialize();
-        };
-        {% endraw %}
+
+            // 2. Clear old click listeners
+            actionButton.onclick = null;
+            
+            // 3. Apply action-specific logic
+            actionButton.innerText = apply.name;
+            
+            if (apply.action === 'copy' && copyData) {
+                // Attach copy function
+                actionButton.setAttribute('href', '#'); // Prevent navigation for copy
+                actionButton.onclick = () => copyDataToClipboard(copyData, actionButton, copyFeedback);
+            } else if (link) {
+                // Attach link attributes
+                actionButton.setAttribute('href', link);
+                // Only open new tab for HTTP links
+                if (!link.startsWith('tel:') && !link.startsWith('sms:') && !link.startsWith('mailto:')) {
+                    actionButton.setAttribute('target', '_blank');
+                } else {
+                    actionButton.removeAttribute('target');
+                }
+            } else {
+                // If no link or copy data, ensure the button is neutralized
+                actionButton.setAttribute('href', '#');
+                actionButton.removeAttribute('target');
+                actionButton.innerText = 'No Action Defined';
+            }
+            
+            // 4. Apply styling
+            iconContainer.className = iconContainer.className.replace(/bg-.*?\-[56789]00/g, '').trim();
+            actionButton.className = actionButton.className.replace(/bg-.*?\-[56789]00/g, '').trim();
+            actionButton.className = actionButton.className.replace(/hover:bg-.*?\-[4567]00/g, '').trim();
+
+            iconContainer.classList.add(apply.color);
+            socialIcon.className = apply.icon;
+            actionButton.classList.add(apply.color, apply.hover);
+        }
+
+        window.onload = function () {
+            const params = getQueryParams();
+
+            document.getElementById("loading").classList.add("hidden");
+            document.getElementById("content").classList.remove("hidden");
+
+            const { name, msg, url, img, copydata } = params; // Extract copydata
+
+            document.getElementById("displayName").innerText = name || "User Profile";
+            document.getElementById("displayMessage").innerText = msg || "";
+
+            // --- Determine what data to show ---
+            const linkData = url || '';
+            const copyData = copydata || '';
+            
+            const linkContainer = document.getElementById("linkContainer");
+            const copyDataContainer = document.getElementById("copyDataContainer");
+
+            if (copyData) {
+                // Show copy data container
+                document.getElementById("copyDataValue").innerText = copyData;
+                copyDataContainer.classList.remove("hidden");
+                linkContainer.classList.add("hidden");
+            } else if (linkData) {
+                // Show link container
+                document.getElementById("linkValue").innerText = linkData.length > 50 ? linkData.substring(0, 47) + '...' : linkData;
+                document.getElementById("linkValue").href = linkData;
+                linkContainer.classList.remove("hidden");
+                copyDataContainer.classList.add("hidden");
+            }
+
+            // --- Profile/Data Display Logic ---
+            const imgElement = document.getElementById("profileImage");
+            const iconContainer = document.getElementById("iconContainer");
+
+            if (img) {
+                imgElement.src = img;
+                imgElement.classList.remove("hidden");
+                iconContainer.classList.add("hidden");
+                imgElement.classList.add("glow-icon");
+            } else {
+                imgElement.classList.add("hidden");
+                iconContainer.classList.remove("hidden");
+                iconContainer.classList.add("glow-icon");
+            }
+            
+            if (name) {
+                document.getElementById("nameValue").innerText = name;
+                document.getElementById("nameContainer").classList.remove("hidden");
+            }
+
+            // --- Apply Styles and Action ---
+            applyDynamicStyles(linkData, copyData);
+
+            // Make image and icon clickable
+            if (linkData) {
+                const profileImage = document.getElementById("profileImage");
+                if (!profileImage.classList.contains('hidden')) {
+                    profileImage.onclick = () => { window.open(linkData, '_blank'); };
+                    profileImage.style.cursor = 'pointer';
+                } else {
+                    const iconContainer = document.getElementById("iconContainer");
+                    if (!iconContainer.classList.contains('hidden')) {
+                        iconContainer.onclick = () => { window.open(linkData, '_blank'); };
+                        iconContainer.style.cursor = 'pointer';
+                    }
+                }
+            }
+        }
     </script>
+
 </body>
 </html>
-"""
-
-@app.route('/', methods=['GET'])
-def index():
-    """Renders the main form page."""
-    global last_qr_data, saved_input_data
-    last_qr_data = None
-    saved_input_data = {
-        'name': 'Abila',
-        'message': 'Check out my profile!',
-        'username': 'Your text key here',
-        'link': 'https://abilash-nickal.github.io/QR-cod-generator/details.html?copydata=Your%20text%20key%20here',
-        'image_url': ''
-    }
-    return render_template_string(HTML_TEMPLATE, qr_image=None, saved_data=saved_input_data)
-
-@app.route('/generate_qr', methods=['POST'])
-def generate_qr():
-    """Generates the QR code by encoding the custom target URL."""
-    global last_qr_data, saved_input_data
-    
-    # 1. Capture all form data, including the resolved 'link' from the hidden field
-    input_data = {
-        'name': request.form.get('name', ''),
-        'message': request.form.get('message', ''),
-        'link': request.form.get('link', ''), # Full URL is passed here
-        'image_url': request.form.get('image_url', ''),
-        'username': request.form.get('username_input', '') # Save the raw username for persistence
-    }
-    saved_input_data = input_data
-
-    # 2. Generate the full target URL with embedded parameters
-    encoded_url = generate_target_url(input_data)
-
-    if not encoded_url:
-        return render_template_string(HTML_TEMPLATE, qr_image=None, saved_data=saved_input_data, encoded_url="Error: Could not generate URL.", display_url="")
-
-    # 3. Create a user-friendly display URL by unquoting the query parameters
-    display_url = urllib.parse.unquote_plus(encoded_url) if encoded_url else ""
-
-    last_qr_data = encoded_url
-    
-    # 3. Generate the minimized QR code image
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=QR_ERROR_CORRECTION, 
-        box_size=QR_BOX_SIZE,                 
-        border=4
-    )
-    qr.add_data(encoded_url)
-    qr.make(fit=True)
-    img: PilImage = qr.make_image(fill_color="black", back_color="white")
-
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
-    
-    qr_image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
-    
-    return render_template_string(HTML_TEMPLATE, qr_image=qr_image_base64, encoded_url=encoded_url, display_url=display_url, saved_data=saved_input_data)
-
-@app.route('/download_qr', methods=['GET'])
-def download_qr():
-    """Serves the generated QR code image for download."""
-    global last_qr_data
-
-    if not last_qr_data:
-        return "Error: No QR code data found to download.", 404
-
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=QR_ERROR_CORRECTION,
-        box_size=QR_BOX_SIZE,
-        border=4
-    )
-    qr.add_data(last_qr_data)
-    qr.make(fit=True)
-    img: PilImage = qr.make_image(fill_color="black", back_color="white")
-
-    download_buffer = io.BytesIO()
-    img.save(download_buffer, format="PNG")
-    download_buffer.seek(0)
-    
-    filename_base = saved_input_data.get('name', 'qrcode').replace(' ', '_')
-    filename = f"{filename_base}_qr.png"
-
-    return send_file(download_buffer, mimetype='image/png', as_attachment=True, download_name=filename)
-
-if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000)
