@@ -148,19 +148,6 @@
             <p id="displayMessage" class="text-white/80 font-medium"></p>
         </div>
 
-        <!-- Gemini Feature: AI Pitch Generation -->
-        <div class="text-center space-y-4 mb-8 pt-4 border-t border-white/20">
-             <button id="pitchButton" onclick="generateAiPitch()" 
-                     class="w-full py-2 rounded-lg bg-yellow-500 text-gray-900 font-bold shadow-md hover:bg-yellow-400 transition duration-150">
-                 Generate AI Pitch ✨
-             </button>
-             <div id="pitchOutput" class="text-white/90 text-sm italic p-3 bg-white/10 rounded-lg hidden">
-                 <!-- LLM Output here -->
-             </div>
-             <p id="pitchStatus" class="text-xs text-yellow-300"></p>
-        </div>
-
-
         <!-- Links List -->
         <div id="linksList" class="space-y-3 pt-4 border-t border-white/20 text-white">
             <!-- Action links will be dynamically injected here -->
@@ -177,9 +164,8 @@
     </div>
 
     <script>
-        // --- Gemini API Configuration ---
-        const API_KEY = ""; // Placeholder for Canvas environment
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+        // --- Gemini API Configuration (Removed, but key definition kept for structure) ---
+        const API_KEY = "";
         
         /* PLATFORM MAP */
         const PLATFORM_MAP = [
@@ -208,7 +194,6 @@
         }
 
         function copyDataToClipboard(data, button, feedbackElement) {
-             // ... [Copy function implementation]
             navigator.clipboard.writeText(data).then(() => {
                 button.innerText = "Copied!";
                 feedbackElement.innerText = "Data copied successfully.";
@@ -223,64 +208,7 @@
             });
         }
         
-        async function generateAiPitch() {
-            // ... [AI Pitch implementation]
-            const name = ALL_DATA.name || 'a creative professional';
-            const message = ALL_DATA.msg1 || ALL_DATA.msg2 || ALL_DATA.msg3;
-            const pitchOutput = document.getElementById('pitchOutput');
-            const pitchStatus = document.getElementById('pitchStatus');
-            const pitchButton = document.getElementById('pitchButton');
-            
-            let userQuery = `Write a compelling, concise elevator pitch (2 sentences maximum) for ${name}. Focus on their main strengths and professional identity.`;
-            if (message) {
-                userQuery += ` The primary skill or focus is: "${message}".`;
-            } else {
-                 userQuery += ` Do not mention a specific message as it is unavailable.`;
-            }
-
-            pitchOutput.classList.add('hidden');
-            pitchOutput.innerText = '';
-            pitchStatus.innerText = 'Generating pitch...';
-            pitchButton.disabled = true;
-
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: {
-                    parts: [{ text: "Act as a world-class marketing strategist, creating punchy, professional summaries." }]
-                }
-            };
-            
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`API response status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-                if (text) {
-                    pitchOutput.innerText = text;
-                    pitchOutput.classList.remove('hidden');
-                    pitchStatus.innerText = 'Pitch ready!';
-                } else {
-                    pitchStatus.innerText = 'Error: No text generated.';
-                }
-
-            } catch (error) {
-                pitchStatus.innerText = `Generation failed. Error: ${error.message}`;
-            } finally {
-                pitchButton.disabled = false;
-            }
-        }
-        // --- END Copy & AI Pitch Functions ---
-
-        // --- Handle Menu Actions (FIX for ReferenceError) ---
+        // --- Handle Menu Actions (Implementation) ---
         function handleMenuAction(action) {
             const body = document.body;
             const themeText = document.getElementById('themeText');
