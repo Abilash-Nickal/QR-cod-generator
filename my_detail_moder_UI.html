@@ -123,12 +123,22 @@
                 <span id="nameValue"></span>
             </div>
             
-            <!-- Link/Copy Data Display -->
-            <div id="linkContainer" class="flex justify-between bg-white/20 p-3 rounded-xl hidden">
-                <span id="linkLabel">Link:</span>
-                <a id="linkValue" href="#" target="_blank" class="underline text-right break-all"></a>
+            <!-- Multiple Link Displays -->
+            <div id="linksContainer" class="space-y-2 hidden">
+                <div id="linkContainer1" class="flex justify-between bg-white/20 p-3 rounded-xl hidden">
+                    <span id="linkLabel1">Link 1:</span>
+                    <a id="linkValue1" href="#" target="_blank" class="underline text-right break-all"></a>
+                </div>
+                <div id="linkContainer2" class="flex justify-between bg-white/20 p-3 rounded-xl hidden">
+                    <span id="linkLabel2">Link 2:</span>
+                    <a id="linkValue2" href="#" target="_blank" class="underline text-right break-all"></a>
+                </div>
+                <div id="linkContainer3" class="flex justify-between bg-white/20 p-3 rounded-xl hidden">
+                    <span id="linkLabel3">Link 3:</span>
+                    <a id="linkValue3" href="#" target="_blank" class="underline text-right break-all"></a>
+                </div>
             </div>
-            
+
             <div id="copyDataContainer" class="flex justify-between bg-white/20 p-3 rounded-xl hidden">
                 <span class="font-bold text-yellow-300">Data to Copy:</span>
                 <span id="copyDataValue" class="text-right break-all"></span>
@@ -255,29 +265,63 @@
             document.getElementById("loading").classList.add("hidden");
             document.getElementById("content").classList.remove("hidden");
 
-            const { name, msg, url, img, copydata } = params; // Extract copydata
+            const { name, msg, url1, url2, url3, img, copydata } = params;
 
             document.getElementById("displayName").innerText = name || "User Profile";
             document.getElementById("displayMessage").innerText = msg || "";
 
-            // --- Determine what data to show ---
-            const linkData = url || '';
             const copyData = copydata || '';
-            
-            const linkContainer = document.getElementById("linkContainer");
+            const urls = [url1, url2, url3].filter(u => u);
+
+            const linksContainer = document.getElementById("linksContainer");
             const copyDataContainer = document.getElementById("copyDataContainer");
 
+            // Check for facebook links
+            const facebookUrl = urls.find(u => u && u.includes('facebook.com'));
+
+            let linkData = '';
+            let actionType = 'none';
+
             if (copyData) {
-                // Show copy data container
                 document.getElementById("copyDataValue").innerText = copyData;
                 copyDataContainer.classList.remove("hidden");
-                linkContainer.classList.add("hidden");
-            } else if (linkData) {
-                // Show link container
-                document.getElementById("linkValue").innerText = linkData.length > 50 ? linkData.substring(0, 47) + '...' : linkData;
-                document.getElementById("linkValue").href = linkData;
-                linkContainer.classList.remove("hidden");
+                linksContainer.classList.add("hidden");
+                linkData = '';
+                actionType = 'copy';
+            } else if (facebookUrl) {
+                // For facebook, hide link containers, only show action button to facebook
+                linksContainer.classList.add("hidden");
                 copyDataContainer.classList.add("hidden");
+                linkData = facebookUrl;
+                actionType = 'facebook';
+            } else if (urls.length > 0) {
+                // Show multiple link containers
+                linksContainer.classList.remove("hidden");
+                copyDataContainer.classList.add("hidden");
+
+                const linkContainers = [
+                    { container: document.getElementById("linkContainer1"), label: document.getElementById("linkLabel1"), value: document.getElementById("linkValue1") },
+                    { container: document.getElementById("linkContainer2"), label: document.getElementById("linkLabel2"), value: document.getElementById("linkValue2") },
+                    { container: document.getElementById("linkContainer3"), label: document.getElementById("linkLabel3"), value: document.getElementById("linkValue3") }
+                ];
+
+                let hasLinks = false;
+                for (let i = 0; i < urls.length; i++) {
+                    if (urls[i]) {
+                        const lc = linkContainers[i];
+                        lc.label.innerText = `Link ${i+1}:`;
+                        lc.value.innerText = urls[i].length > 50 ? urls[i].substring(0, 47) + '...' : urls[i];
+                        lc.value.href = urls[i];
+                        lc.container.classList.remove("hidden");
+                        hasLinks = true;
+                    } else {
+                        linkContainers[i].container.classList.add("hidden");
+                    }
+                }
+
+                if (hasLinks) {
+                    linkData = urls[0]; // Primary link for action
+                }
             }
 
             // --- Profile/Data Display Logic ---
@@ -294,26 +338,27 @@
                 iconContainer.classList.remove("hidden");
                 iconContainer.classList.add("glow-icon");
             }
-            
+
             if (name) {
                 document.getElementById("nameValue").innerText = name;
                 document.getElementById("nameContainer").classList.remove("hidden");
             }
 
             // --- Apply Styles and Action ---
-            applyDynamicStyles(linkData, copyData);
+            const primaryLink = actionType === 'facebook' ? facebookUrl : linkData;
+            applyDynamicStyles(primaryLink, copyData);
 
             // Make image and icon clickable
-            if (linkData) {
+            if (primaryLink) {
                 const profileImage = document.getElementById("profileImage");
                 if (!profileImage.classList.contains('hidden')) {
-                    profileImage.onclick = () => { window.open(linkData, '_blank'); };
+                    profileImage.onclick = () => { window.open(primaryLink, '_blank'); };
                     profileImage.style.cursor = 'pointer';
                 } else {
-                    const iconContainer = document.getElementById("iconContainer");
-                    if (!iconContainer.classList.contains('hidden')) {
-                        iconContainer.onclick = () => { window.open(linkData, '_blank'); };
-                        iconContainer.style.cursor = 'pointer';
+                    const iconCont = document.getElementById("iconContainer");
+                    if (!iconCont.classList.contains('hidden')) {
+                        iconCont.onclick = () => { window.open(primaryLink, '_blank'); };
+                        iconCont.style.cursor = 'pointer';
                     }
                 }
             }
