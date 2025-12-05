@@ -159,10 +159,34 @@ color:white;
 }
 /* --- Base Styles (Provided) --- */
 .btn-primary{background:linear-gradient(90deg,var(--accent),#6d28d9);border:none;color:white;padding:12px;border-radius:10px;}
-.btn-download{background:linear-gradient(90deg,#059669,#10b981);color:white;padding:10px;border-radius:10px;}
-
+.btn-download{background:linear-gradient(90deg,#059669,#10b981);color:white;padding:10px;border-radius:10px;box-shadow:0 6px 18px rgba(16,185,129,0.18);margin-right: 10px;}
+.btn-link{
+    background:linear-gradient(90deg,#3b82f6,#2563eb);
+    color:white;
+    padding:10px;
+    border-radius:10px;
+    box-shadow:0 6px 18px rgba(37,99,235,0.18);
+    margin-right: 10px;
+    
+    /* Ensure the link acts like a block to accept width */
+    display: inline-block; 
+    
+    /* ADDED: Set the desired width (length) here */
+    width: 180px; 
+    
+    /* ADDED: Center the text/icon inside the button (optional) */
+    text-align: center; 
+}
 /* --- Hover Styles with Glow Added --- */
-
+.btn-link:hover {
+    background: gold;
+    color: black;
+    /* ADDED: Box shadow for the glow effect */
+    box-shadow: 0 0 15px gold; 
+    /* ADDED: Optional: Smooth transition for the effect */
+    transition: box-shadow 0.3s ease; 
+    
+}
 .btn-primary:hover {
     background: gold;
     color: black;
@@ -179,6 +203,7 @@ color:white;
     box-shadow: 0 0 15px gold; 
     /* ADDED: Optional: Smooth transition for the effect */
     transition: box-shadow 0.3s ease;
+    
 }
 
 .small-btn:hover {
@@ -193,7 +218,7 @@ color:white;
 /* * NOTE: To make the glow appear smooth, you should also add a 
 * transition property to the base (non-hover) button styles:
 */
-.btn-primary, .btn-download, .small-btn {
+.btn-primary, .btn-download, .small-btn ,.btn-link {
     /* ... existing properties ... */
     transition: background 0.3s, box-shadow 0.3s;
 }
@@ -230,6 +255,24 @@ select option{
   width:400px;
   border:2px solid rgba(255,255,255,0.10);
 }
+
+.fixed-buttons-container {
+    /* 1. Sets the element relative to the browser window */
+    position: absolute; 
+    
+    /* 2. Positions the element 20px from the bottom edge */
+    bottom: 170px; 
+    
+    /* 3. Positions the element 20px from the left edge */
+    left: 400px; 
+    z-index: 1000; /* Ensures it stays above other content */
+    
+    /* Optional: Add a small gap between the two buttons */
+    display: flex;
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+}
 .small-muted{font-size:12px;color:rgba(230,238,248,0.6);}
 .url-box {
   /* --- Existing Styles --- */
@@ -258,6 +301,14 @@ select option{
 <div class="h1">QR <i class="fa fa-qrcode" style="font-size:500px;color:red"></i> GENERATOR
 <div>
 </h1>
+<div class="fixed-buttons-container">
+    <a href="https://github.com/Abilash-Nickal" class="btn-link" target="_blank"> 
+        <i class="fa fa-github"></i> Profile
+    </a>
+    <a href="https://www.linkedin.com/in/arumugam-abilashan-6916a2157?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3BcW9f2v%2B2Txulyw5em4cgJw%3D%3D" class="btn-link" target="_blank">
+        <i class="fa fa-linkedin"></i> Profile
+    </a>
+</div>
 <spline-viewer loading-anim-type="none" url="https://prod.spline.design/UK2sM5JyhHbgUGpr/scene.splinecode"></spline-viewer>
 <div class="glass w-full max-w-4xl">
   <h2 class="text-2xl font-extrabold mb-4">QR Code Data Encoder</h2>
@@ -401,7 +452,7 @@ select option{
 
       {% if qr_image %}
         <div class="url-box" id="displayUrl">{{ display_url }}</div>
-        <a href="/download_qr" class="w-full mt-3 py-3 btn-download text-center">Download PNG</a>
+        <a href="/download_qr" class="w-full mt-3 py-3 btn-download text-center">Download QR Code (PNG)</a>
       {% endif %}
     </div>
      <!-- three-dot menu overlay -->
@@ -822,7 +873,7 @@ def index():
     global saved_input_data, last_qr_data
     last_qr_data = None
     saved_input_data = {
-        "name": "Abila",
+        "name": "Abilash",
         "message": "Check out my profile!",
         "copy_data": "",
         "image_url": "",
@@ -830,7 +881,7 @@ def index():
         "platform1": "", "username_input1": "", "link1": "",
         "platform2": "", "username_input2": "", "link2": "",
         "platform3": "", "username_input3": "", "link3": "",
-        "custom_text": "Scan Me! - Abila",
+        "custom_text": "Scan Me!",
         # QR options defaults (sent as empty to allow modal to set them)
         "box_size": "",
         "error_level": ""
